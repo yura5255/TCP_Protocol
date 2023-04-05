@@ -1,7 +1,9 @@
-﻿using System;
+﻿using ShareData;
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace tcp_server
 {
@@ -15,34 +17,49 @@ namespace tcp_server
             IPEndPoint ipPoint = new IPEndPoint(iPAddress, port);
             TcpListener listener = new TcpListener(ipPoint); // bind
 
+
+            // связываем сокет с локальной точкой, по которой будем принимать данные
+
+            // начинаем прослушивание
+            listener.Start(10);
+
+            Console.WriteLine("Server started! Waiting for connection...");
+            TcpClient client = listener.AcceptTcpClient();
             try
             {
-                // связываем сокет с локальной точкой, по которой будем принимать данные
-
-                // начинаем прослушивание
-                listener.Start(10);
-
-                Console.WriteLine("Server started! Waiting for connection...");
-                TcpClient client = listener.AcceptTcpClient();
 
                 while (client.Connected)
-                { 
+                {
 
                     NetworkStream ns = client.GetStream();
 
-                    StreamReader sr = new StreamReader(ns);
-                    string response = sr.ReadLine();
+                    BinaryFormatter formatter = new BinaryFormatter();
+                    var request = (Request)formatter.Deserialize(ns);
 
-                    Console.WriteLine($"{client.Client.RemoteEndPoint} - {response} at {DateTime.Now.ToShortTimeString()}");
+                    Console.WriteLine($"Request data : {request.A} {request.B} from {client.Client.LocalEndPoint}");
+
+                    double res = 0;
+                    switch (request.OperationType)
+                    {
+                        case OperationType.Add:
+                            res = request.A + request.B;
+                            break;
+                        case OperationType.Sub:
+                            res = request.A - request.B;
+                            break;
+                        case OperationType.Mult:
+                            res = request.A * request.B;
+                            break;
+                        case OperationType.Div:
+                            res = request.A / request.B;
+                            break;
+                    }
 
                     // отправляем ответ
-                    string message = "Message was send!";
-
+                    string message = $"Result = {res}";
                     StreamWriter sw = new StreamWriter(ns);
                     sw.WriteLine(message);
-
                     sw.Flush();
-
                     // закриваємо потокі
                     //sr.Close();
                     //sw.Close();

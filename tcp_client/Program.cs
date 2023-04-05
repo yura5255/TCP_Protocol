@@ -2,9 +2,12 @@
 using System.IO;
 using System.Net.Sockets;
 using System.Net;
+using System.Runtime.Serialization.Formatters.Binary;
+using ShareData;
 
 namespace tcp_client
 {
+
     class Program
     {
         // адрес и порт сервера, к которому будем подключаться
@@ -18,33 +21,35 @@ namespace tcp_client
             // подключаемся к удаленному хосту
             client.Connect(ipPoint);
 
-            string message = "";
             try
             {
-                while (message != "end")
+                Request request = new Request();
+                do
                 {
-                    Console.Write("Enter a message:");
-                    message = Console.ReadLine();
+                    Console.Write("Enter A: ");
+                    request.A = double.Parse(Console.ReadLine());
+                    Console.Write("Enter B: ");
+                    request.B = double.Parse(Console.ReadLine());
+                    Console.Write("Enter Operation (1-4): ");
+                    request.OperationType = (OperationType)Enum.Parse(typeof(OperationType), Console.ReadLine());
 
-                    NetworkStream ns = client.GetStream();
-
-                    StreamWriter sw = new StreamWriter(ns);
-                    sw.WriteLine(message);//Hello
-
-
-                    sw.Flush(); // send all buffered data and clear the buffer // 1Kb
 
                     // получаем ответ
-
+                    NetworkStream ns = client.GetStream();
+                    BinaryFormatter formatter = new BinaryFormatter();
+                    formatter.Serialize(ns, request);
                     StreamReader sr = new StreamReader(ns);
                     string response = sr.ReadLine();
-
                     Console.WriteLine("server response: " + response);
 
                     // закриваємо потокі
                     //sw.Close();
                     //sr.Close();
                     //ns.Close();
+                } while (request.A != 0 || request.B != 0);
+
+                {
+
                 }
             }
             catch (Exception ex)
